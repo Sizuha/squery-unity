@@ -1,4 +1,4 @@
-# Squery for Unity
+# SQuery for Unity
 Simple SQLite Query Library for Unity (5.6.5 later)
 
 * 利用したライブラリ
