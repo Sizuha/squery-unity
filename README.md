@@ -81,7 +81,7 @@ var count = new SQuery(USER_DB)
 
 # Insert or Update
 ```c#
-// INSERT INTO pattern (pattern_id,count,update_datetime) VALUES (id, cnt, now);
+// INSERT INTO pattern (pattern_id,count,update_datetime) VALUES (@id, @cnt, @now);
 //
 // INSERTが失敗したら
 // UPDATE pattern SET pattern_id=@id, count=@cnt, update_datetime=@now 
