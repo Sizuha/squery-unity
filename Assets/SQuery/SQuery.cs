@@ -19,8 +19,8 @@ namespace squery {
 			this.dbPath = dbWithPath;
 		}
 
-		public Table From(string table) {
-			var result = new Table(this, table);
+		public TableQuery From(string table) {
+			var result = new TableQuery(this, table);
 			return result;
 		}
 
@@ -63,7 +63,7 @@ namespace squery {
 			return result;
 		}
 
-		SqliteCommand CreateCommand(SqliteConnection conn, string rawQuery, object[] args) {
+		static SqliteCommand CreateCommand(SqliteConnection conn, string rawQuery, object[] args) {
 			var cmd = conn.CreateCommand();
 			cmd.CommandType = CommandType.Text;
 			cmd.CommandText = rawQuery;
@@ -169,7 +169,7 @@ namespace squery {
 								   : outPath;
 
 			//Debug.Log("CopyFromStreamingAssets from: " + sourcePath + " --> to: " + outputPath);
-				 
+
 			if (sourcePath.Contains("://")) {
 				if (overwrite || !System.IO.File.Exists(outputPath)) {
 					var www = new WWW(sourcePath);
@@ -210,7 +210,7 @@ namespace squery {
 		}
 
 		//--- Utils -----------------------------------------------
-		
+
 		public static string DateTimeToStr(DateTime datetime, bool withoutTime = false) {
 			return datetime.ToString(withoutTime ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm:ss");
 		}
@@ -219,12 +219,11 @@ namespace squery {
 			DateTime parsedDate;
 
 			if (DateTime.TryParseExact(
-				formatted, 
-				withoutTime ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm:ss", 
-				null, 
-				DateTimeStyles.None, 
-				out parsedDate)) 
-			{
+				formatted,
+				withoutTime ? "yyyy-MM-dd" : "yyyy-MM-dd HH:mm:ss",
+				null,
+				DateTimeStyles.None,
+				out parsedDate)) {
 				return parsedDate;
 			}
 
@@ -233,7 +232,7 @@ namespace squery {
 
 		public static string EscapeLikeSpecialChrs(string source, char escapeChar) {
 			var result = new FastString(source.Length * 2);
-			var targets = new char[] {'%','_'};
+			var targets = new char[] { '%', '_' };
 
 			foreach (var c in source) {
 				foreach (var sc in targets) {
@@ -251,7 +250,7 @@ namespace squery {
 
 	}
 
-	public class Table {
+	public class TableQuery {
 		const int CMD_INIT_BUFFER_SIZE = 128;
 
 		readonly SQuery db;
@@ -260,9 +259,9 @@ namespace squery {
 		bool isDistict = false;
 
 		string whereStr = string.Empty;
-		object[] whereArgs = {};
+		object[] whereArgs = { };
 
-		Dictionary<string,object> values = new Dictionary<string, object>();
+		Dictionary<string, object> values = new Dictionary<string, object>();
 
 		readonly FastString orderBy = new FastString();
 		string groupBy = string.Empty;
@@ -272,14 +271,14 @@ namespace squery {
 		readonly List<string> keys = new List<string>(3);
 
 
-		public Table(SQuery db, string tableName) {
+		public TableQuery(SQuery db, string tableName) {
 			this.db = db;
 			this.tableName = tableName;
 		}
 
-		public Table Reset() {
+		public TableQuery Reset() {
 			whereStr = string.Empty;
-			whereArgs = new object[]{};
+			whereArgs = new object[] { };
 			values.Clear();
 			orderBy.Clear();
 			groupBy = string.Empty;
@@ -289,54 +288,54 @@ namespace squery {
 			return this;
 		}
 
-		public Table Keys(params string[] keys) {
+		public TableQuery Keys(params string[] keys) {
 			this.keys.Clear();
 			this.keys.AddRange(keys);
 			return this;
 		}
 
-		public Table Where(string where, params object[] args) {
+		public TableQuery Where(string where, params object[] args) {
 			this.whereStr = where;
 			this.whereArgs = args;
 			return this;
 		}
 
-		public Table Values(Dictionary<string, object> keyValues) {
+		public TableQuery Values(Dictionary<string, object> keyValues) {
 			this.values = keyValues;
 			return this;
 		}
 
-		public Table OrderBy(string field, bool asc = true) {
+		public TableQuery OrderBy(string field, bool asc = true) {
 			if (!orderBy.IsEmpty()) {
 				orderBy.Append(", ");
 			}
 			orderBy.Append(field).Append(asc ? " ASC" : " DESC");
-					 
+
 			return this;
 		}
 
-		public Table SetOrderBy(string orderByStr) {
+		public TableQuery SetOrderBy(string orderByStr) {
 			orderBy.Clear();
 			orderBy.Append(orderByStr);
 			return this;
 		}
 
-		public Table GroupBy(string groupByStr) {
+		public TableQuery GroupBy(string groupByStr) {
 			this.groupBy = groupByStr;
 			return this;
 		}
 
-		public Table Limit(int count, int offset = 0) {
+		public TableQuery Limit(int count, int offset = 0) {
 			limit = count;
 			limitOffset = offset;
 			return this;
 		}
 
-		public Table Distnict() {
+		public TableQuery Distnict() {
 			isDistict = true;
 			return this;
 		}
-		
+
 		public int Insert(params object[] values) {
 			var cmd = new FastString(CMD_INIT_BUFFER_SIZE);
 			cmd.Append("INSERT INTO ").Append(tableName).Append(" VALUES(");
@@ -360,10 +359,10 @@ namespace squery {
 		}
 
 		public int Insert() {
-			var cmd = new FastString(CMD_INIT_BUFFER_SIZE*2);
+			var cmd = new FastString(CMD_INIT_BUFFER_SIZE * 2);
 			cmd.Append("INSERT INTO ").Append(tableName);
 
-			var fieldStr = new FastString(CMD_INIT_BUFFER_SIZE/2);
+			var fieldStr = new FastString(CMD_INIT_BUFFER_SIZE / 2);
 			var valueStr = new FastString(CMD_INIT_BUFFER_SIZE);
 
 			bool first = true;
@@ -371,7 +370,7 @@ namespace squery {
 			foreach (var kv in values) {
 				if (first) {
 					first = false;
-				} 
+				}
 				else {
 					fieldStr.Append(", ");
 					valueStr.Append(", ");
@@ -525,15 +524,14 @@ namespace squery {
 			return GetColumns_And_SetWhereForCheckKey(creator, false);
 		}
 
-		string[] GetColumns_And_SetWhereForCheckKey<T>(Func<T> creator, bool enbaleFillWhere = true) 
-			where T : ISQueryRow 
-		{
+		string[] GetColumns_And_SetWhereForCheckKey<T>(Func<T> creator, bool enbaleFillWhere = true)
+			where T : ISQueryRow {
 			var source = creator().ToValues();
 			var cols = new string[source.Count];
 			int i = 0;
 
 			enbaleFillWhere = enbaleFillWhere && keys != null && keys.Count > 0 && string.IsNullOrEmpty(whereStr);
-			FastString buffer = enbaleFillWhere ? new FastString(CMD_INIT_BUFFER_SIZE/2) : null;
+			FastString buffer = enbaleFillWhere ? new FastString(CMD_INIT_BUFFER_SIZE / 2) : null;
 			List<object> argList = enbaleFillWhere ? new List<object>(source.Count) : null;
 
 			bool isFirst = true;
@@ -543,7 +541,7 @@ namespace squery {
 				if (enbaleFillWhere && keys.Contains(kv.Key)) {
 					if (isFirst) isFirst = false; else buffer.Append(" AND ");
 
-					buffer.Append(kv.Key).Append("=@kcArg"+i);
+					buffer.Append(kv.Key).Append("=@kcArg" + i);
 					argList.Add(kv.Value);
 				}
 
@@ -557,7 +555,7 @@ namespace squery {
 			return cols;
 		}
 
-		void SetWhereForCheckKey(Dictionary<string,object> source) {
+		void SetWhereForCheckKey(Dictionary<string, object> source) {
 			bool enbaleFillWhere = keys != null && keys.Count > 0 && string.IsNullOrEmpty(whereStr);
 			if (!enbaleFillWhere) return;
 
@@ -586,8 +584,7 @@ namespace squery {
 		}
 
 		public T SelectOne<T>(Func<T> creator, params string[] columns)
-			where T : ISQueryRow 
-		{
+			where T : ISQueryRow {
 			Limit(1);
 			using (var r = Select(columns)) {
 				if (r.reader.HasRows && r.reader.Read()) {
@@ -600,15 +597,14 @@ namespace squery {
 				return default(T); // nullを返す
 			}
 		}
-		
+
 		public ICollection<T> Select<T>(Func<T> creator) where T : ISQueryRow {
 			var cols = GetColumns_And_SetWhereForCheckKey(creator);
 			return Select(creator, cols);
 		}
 
 		public ICollection<T> Select<T>(Func<T> creator, params string[] columns)
-			where T : ISQueryRow
-		{
+			where T : ISQueryRow {
 			using (var r = Select(columns)) {
 				var rows = new LinkedList<T>();
 				while (r.reader.HasRows) {
