@@ -258,8 +258,8 @@ namespace squery {
 
 		bool isDistict = false;
 
-		string whereStr = string.Empty;
-		object[] whereArgs = { };
+		readonly FastString whereStr = new FastString();
+		readonly List<object> whereArgs = new List<object>();
 
 		Dictionary<string, object> values = new Dictionary<string, object>();
 
@@ -277,8 +277,9 @@ namespace squery {
 		}
 
 		public TableQuery Reset() {
-			whereStr = string.Empty;
-			whereArgs = new object[] { };
+			whereStr.Clear();
+			whereArgs.Clear();
+
 			values.Clear();
 			orderBy.Clear();
 			groupBy = string.Empty;
@@ -295,8 +296,19 @@ namespace squery {
 		}
 
 		public TableQuery Where(string where, params object[] args) {
-			this.whereStr = where;
-			this.whereArgs = args;
+			whereStr.Append(where);
+			whereArgs.AddRange(args);
+			return this;
+		}
+
+		public TableQuery WhereAnd(string where, params object[] args) {
+			if (whereStr.IsEmpty())
+				return Where("("+where+")", args);
+
+			whereStr.Append(" AND (");
+			whereStr.Append(where);
+			whereStr.Append(")");
+			whereArgs.AddRange(args);
 			return this;
 		}
 
@@ -402,7 +414,7 @@ namespace squery {
 		public int Update() {
 			var cmd = new FastString(CMD_INIT_BUFFER_SIZE);
 			cmd.Append("UPDATE ").Append(tableName).Append(" SET ");
-			var args = new List<object>(values.Count + whereArgs.Length);
+			var args = new List<object>(values.Count + whereArgs.Count);
 
 			bool first = true;
 			int argCnt = 0;
@@ -415,7 +427,7 @@ namespace squery {
 				args.Add(kv.Value);
 			}
 
-			if (!string.IsNullOrEmpty(whereStr)) {
+			if (!whereStr.IsEmpty()) {
 				cmd.Append(" WHERE ").Append(whereStr);
 				foreach (var a in whereArgs) {
 					args.Add(a);
@@ -435,7 +447,7 @@ namespace squery {
 			var result = -1;
 
 			SetWhereForCheckKey(this.values);
-			if (values != null && values.Count > 0 && !string.IsNullOrEmpty(whereStr)) {
+			if (values != null && values.Count > 0 && !whereStr.IsEmpty()) {
 				try {
 					result = Insert();
 				}
@@ -459,13 +471,13 @@ namespace squery {
 			var cmd = new FastString(CMD_INIT_BUFFER_SIZE);
 			cmd.Append("DELETE FROM ").Append(tableName);
 
-			if (!string.IsNullOrEmpty(whereStr)) {
+			if (!whereStr.IsEmpty()) {
 				cmd.Append(" WHERE ").Append(whereStr);
 			}
 
 			cmd.Append(";");
 
-			return db.ExecuteNonQuery(cmd.ToString(), whereArgs);
+			return db.ExecuteNonQuery(cmd.ToString(), whereArgs.ToArray());
 		}
 
 		string CreateSelectQuery(bool isCount, params string[] columns) {
@@ -491,7 +503,7 @@ namespace squery {
 
 			cmd.Append(" FROM ").Append(tableName);
 
-			if (!string.IsNullOrEmpty(whereStr)) {
+			if (!whereStr.IsEmpty()) {
 				cmd.Append(" WHERE ").Append(whereStr);
 			}
 
@@ -517,7 +529,7 @@ namespace squery {
 
 		public SQuery.QueryResult Select(params string[] columns) {
 			var cmd = CreateSelectQuery(false, columns);
-			return db.ExecuteQuery(cmd, whereArgs);
+			return db.ExecuteQuery(cmd, whereArgs.ToArray());
 		}
 
 		string[] GetColumnsFromCreator<T>(Func<T> creator) where T : ISQueryRow {
@@ -530,7 +542,7 @@ namespace squery {
 			var cols = new string[source.Count];
 			int i = 0;
 
-			enbaleFillWhere = enbaleFillWhere && keys != null && keys.Count > 0 && string.IsNullOrEmpty(whereStr);
+			enbaleFillWhere = enbaleFillWhere && keys != null && keys.Count > 0 && whereStr.IsEmpty();
 			FastString buffer = enbaleFillWhere ? new FastString(CMD_INIT_BUFFER_SIZE / 2) : null;
 			List<object> argList = enbaleFillWhere ? new List<object>(source.Count) : null;
 
@@ -556,7 +568,7 @@ namespace squery {
 		}
 
 		void SetWhereForCheckKey(Dictionary<string, object> source) {
-			bool enbaleFillWhere = keys != null && keys.Count > 0 && string.IsNullOrEmpty(whereStr);
+			bool enbaleFillWhere = keys != null && keys.Count > 0 && whereStr.IsEmpty();
 			if (!enbaleFillWhere) return;
 
 			FastString buffer = new FastString(CMD_INIT_BUFFER_SIZE / 2);
