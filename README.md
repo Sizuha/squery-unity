@@ -81,22 +81,33 @@ var count = new SQuery(USER_DB)
 
 # Insert or Update
 ```c#
-public bool SetUserPhraseImage(int phraseNo, string imgPath) {
-    var now = SQuery.DateTimeToStr(DateTime.UtcNow);
-    var values = new Dictionary<string, object> {
-        { "course", currentUser.CourseInfo.CourseID },
-        { "phrase_no", phraseNo},
-        { "img_path", imgPath},
-        { "update_datetime", now }
-    };
+// INSERT INTO pattern (pattern_id,count,update_datetime) VALUES (id, cnt, now);
+//
+// INSERTが失敗したら
+// UPDATE pattern SET pattern_id=@id, count=@cnt, update_datetime=@now 
+// WHERE pattern_id = @id AND count < @cnt;
+public static void ImportPatternRecords(SimpleJSON.JSONArray json) {
+	var tbl = new SQuery(USER_DB).From("pattern");
+	var nowRaw = DateTime.UtcNow;
+	var now = SQuery.DateTimeToStr(nowRaw);
 
-    return new SQuery(USER_DB)
-        .From("user_img")
-        .Values(values)
-        .Where("course=@c AND phrase_no=@p", currentUser.CourseInfo.CourseID, phraseNo)
-        .InsertOrUpdate() > 0;
+	for (int i = 0; i < json.Count; i++) {
+		var node = json[i];
+		var id = node["no"].AsInt;
+		var cnt = node["cnt"].AsInt;
+		var values = new Dictionary<string, object> {
+			{ "pattern_id", id},
+			{ "count", cnt },
+			{ "update_datetime", now }
+		};
+		tbl.Keys("pattern_id")
+		   .Values(values)
+		   .Where("pattern_id = @id AND count < @cnt", id, cnt)
+		   .InsertOrUpdate();
+	}
 }
 ```
+`Keys()`でキーを指定すると、Updateの時にSETからキーのフィルドは外される。
 
 # Delete
 ```c#
