@@ -298,7 +298,10 @@ namespace squery {
 		public TableQuery Where(string where, params object[] args) {
 			whereStr.Clear();
 			whereStr.Append(where);
+
+			whereArgs.Clear();
 			whereArgs.AddRange(args);
+			
 			return this;
 		}
 
